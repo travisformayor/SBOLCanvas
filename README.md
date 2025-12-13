@@ -1,109 +1,117 @@
+# SBML Export Feature for SBOLCanvas
 
-# SBOLCanvas
+This branch contains the MXGraph-to-SBML export feature for SBOLCanvas. This feature allows SBOLCanvas to be used as a front-end design tool for simulation tools like iBioSim.
 
-SBOLCanvas is a web application for creation and editing of genetic constructs using the SBOL data and visual standard. SBOLCanvas allows a user to create a genetic design from start to finish, with the option to incorporate existing SBOL data from a SynBioHub repository. SBOLCanvas is created as part of SynBioKS.
+## Key Features
 
-## SynBioSuite Branch
+*   **SBML Export**: Generates SBML species and reactions.
+*   **TU-Based Mapping**: Coverts visual backbones into transcriptional units.
+*   **Kinetic Laws**: Generates Hill equations for regulation (repression/activation), mass-action for complexes and degradation.
+*   **Event System**: Time-based events to toggle simulation parameters (e.g., adding IPTG).
+*   **Visual Layout**: Exports the visual layout of the design using the SBML Layout Extension.
 
-This branch is specifically for SBOLCanvas as embedded in the [SynBioSuite app](https://github.com/MyersResearchGroup/SynBioSuite);
-however, it can still function as a standalone application. 
-## Repository Structure
+## Implementation Phases
 
-This is a monorepo containing an Angular app as a frontend (in the frontend directory)
-and a Dockerized Java API (in the backend directory) that handles things like 
-conversion, communication with SynBioHub, etc.
+1.  **Species Creation**: Map molecular species (proteins, small molecules) and create a Promoter Species for each backbone to represent TUs.
+2.  **Reaction Creation**: Generate reactions based on interaction edges.
+    *   *Genetic Production*: TU reactions with Hill function.
+    *   *Complex Formation*: Reversible mass-action.
+    *   *Degradation*: Irreversible mass-action.
+3.  **Visual Layout**: Use SBML Layout Extension to match the design in the simulation tool.
+4.  **Events**: Handle Events for simulation parameters.
 
-This differs from the *final* branch, which Dockerizes the frontend and backend
-together, and serves the Angular app from the backend.
+## How to Run
 
-The changes made were an optimization to allow the API to be deployed serverlessly
-and the frontend to be deployed as a static web app served from CDNs. 
-## Run Locally
-
-Clone the project
-
-```bash
-git clone https://github.com/SynBioDex/SBOLCanvas
-```
-
-Go to the backend directory
+#### Backend
 
 ```bash
-cd SBOLCanvas/SBOLCanvasBackend
-```
-
-Ensure you have nodemon installed
-
-```bash
+cd SBOLCanvasBackend
 npm install -g nodemon
-```
-
-Run nodemon to build and run the backend in a container
-
-```bash
 npx nodemon
 ```
 
-Go to the frontend directory
+#### Frontend
 
 ```bash
-cd ../SBOLCanvas/SBOLCanvasFrontend
-```
-
-Install dependencies
-
-```bash
+cd SBOLCanvasFrontend
 npm install
-npm run gitversion
-```
-
-Start the Angular development server
-
-```bash
-npm run dev
-```
-Or, if you plan to develop the frontend, use 
-
-~~~bash
-npm run prebuild # only needed the first run
+npm run prebuild # Only needed for the first run
 ng serve -c development
-~~~
-
-This allows for the use of the Angular DevTools and provides a better debugging experience via the regular DevTools.
-
-Alternatively, you can build both the frontend and backend together on one Docker container, from the root directory, run
-
-```bash
-docker build -t sbolcanvas .
-```
-and then
-```bash
-docker run --rm --name canvas --publish 4040:8080 sbolcanvas
-```
-A local instance will be availaible on http://localhost:4040/
-
-If you plan to contribute to this repository, this is recommended before you open a Pull Request. GitHub Actions will use a similar process to check the Docker build and deployment.
-
-
-
-## Deployment
-
-To build the frontend, from the frontend directory, run
-
-```bash
-npm run build
 ```
 
-The built output will be available in frontend/dist and can be deployed anywhere
-a static web app can be deployed. Genetic Logic Lab's weapon of choice is 
-[Azure Static Web Apps](https://azure.microsoft.com/en-us/products/app-service/static/).
+## How to Test SBML Export
 
-To build the backend, from the backend directory, run
-```bash
-docker build -t sbolcanvas .
-```
+#### Example Files
 
-The resulting Docker image can be deployed anywhere you can run Docker containers.
-Genetic Logic Lab uses [Azure Container Apps](https://azure.microsoft.com/en-us/products/container-apps/).
+*   `example_files/sbolcanvas_sbol-toggle.xml`: SBOL design file for the toggle switch.
+*   `example_files/sbolcanvas_sbml-export.xml`: SBML file already exported from SBOLCanvas (using the steps below).
+*   `example_files/ibiosim_sbml-toggle-export.xml`: SBML file created in iBioSim for comparison.
+
+#### Testing Steps
+
+1.  **Load the Design**: Open SBOLCanvas and load `example_files/sbolcanvas_sbol-toggle.xml`.
+2.  **Configure Simulation**:
+    *   Add **Events** to the canvas (High and Low Events for IPTG and aTc).
+    *   Mark `IPTG` and `aTc` as **Boundary Conditions** in their glyph info.
+3.  **Export**: Select **File -> Export File -> Format: SBML**.
+4.  **Simulate**: Load the SBML file into iBioSim and run the simulation.
+
+## Results
+
+#### SBOLCanvas Design
+<img src="notes/sbolcanvas_deisgn.png" style="max-width: 60%;">
+
+#### iBioSim Import
+<img src="notes/sbol-ibiosim-import.png" style="max-width: 60%;">
+
+#### iBioSim Simulation
+<img src="notes/sim-results.png" style="max-width: 60%;">
 
 
+## Future Work
+
+*   **SBOL Param Storage**: Storing simulation parameters and events in SBOL files (currently memory-only).
+*   **SBML Import**: Converting SBML back to SBOLCanvas.
+*   **Unregulated Promoters**: Support for unregulated promoters.
+*   **Mixed Regulation**: Support for promoters with both activation and repression.
+*   **Events Visual Layout**: Include event glyphs in the SBML Layout.
+*   **Event System Parity**: Match all Event features of iBioSim (multiple assignments, custom triggers, priority, etc).
+*   **User Validation**: Give user feedback on design issues before export.
+
+## Modified Files
+
+| Files Modified for SBML Export Feature      |
+| :------------------------------------------ |
+| `SBOLCanvasBackend/src/data/GlyphInfo.java` |
+| `SBOLCanvasBackend/src/data/InteractionInfo.java` |
+| `SBOLCanvasBackend/src/servlets/Convert.java` |
+| `SBOLCanvasBackend/src/servlets/Export.java` |
+| `SBOLCanvasBackend/src/data/EventInfo.java` |
+| `SBOLCanvasBackend/src/utils/Converter.java` |
+| `SBOLCanvasBackend/src/utils/MxToSBML.java` |
+| `SBOLCanvasBackend/src/utils/MxToSBOL.java` |
+| `SBOLCanvasBackend/src/utils/SBOLData.java` |
+| `SBOLCanvasFrontend/src/app/app.module.ts` |
+| `SBOLCanvasFrontend/src/app/canvas/canvas.component.ts` |
+| `SBOLCanvasFrontend/src/app/eventInfo.ts` |
+| `SBOLCanvasFrontend/src/app/glyph-menu/glyph-menu.component.html` |
+| `SBOLCanvasFrontend/src/app/glyph-menu/glyph-menu.component.ts` |
+| `SBOLCanvasFrontend/src/app/glyphInfo.ts` |
+| `SBOLCanvasFrontend/src/app/graph-base.ts` |
+| `SBOLCanvasFrontend/src/app/graph-helpers.ts` |
+| `SBOLCanvasFrontend/src/app/graph.service.ts` |
+| `SBOLCanvasFrontend/src/app/info-editor/info-editor.component.css` |
+| `SBOLCanvasFrontend/src/app/info-editor/info-editor.component.html` |
+| `SBOLCanvasFrontend/src/app/info-editor/info-editor.component.ts` |
+| `SBOLCanvasFrontend/src/app/interactionInfo.ts` |
+| `SBOLCanvasFrontend/src/app/metadata.service.ts` |
+| `SBOLCanvasFrontend/src/assets/glyph_stencils/utils/.bundle_order` |
+| `SBOLCanvasFrontend/src/assets/glyph_stencils/utils/event.xml` |
+| `example_files/ibiosim_sbml-toggle-export.xml` |
+| `example_files/sbolcanvas_sbml-export.xml` |
+| `example_files/sbolcanvas_sbol-toggle.xml` |
+
+---
+
+## AI Usage Disclosure Policy 
+I used Google Gemini to summarize api documentation, my codebase research, and my implementation planning notes, into the [SMBL_Export_Design.md](notes/SBML_Export_Design.md) document, which I used as reference and context for AI-assisted tab complete while developing the feature.
