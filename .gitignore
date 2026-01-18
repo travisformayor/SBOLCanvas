@@ -1,4 +1,7 @@
+.DS_Store
 desktop.ini
 *.war
 *.class
 .vscode/tasks.json 
+
+notes/
